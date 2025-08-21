@@ -205,3 +205,7 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# API Key
+# This is a sensitive file that contains API keys and should not be shared.
+cea-project-469719-999bd9dee621.json
