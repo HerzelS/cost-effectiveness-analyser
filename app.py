@@ -11,17 +11,16 @@ json_key_file = st.file_uploader("Upload JSON key file for Google Sheets API", t
 
 # Optional: user can input URLs manually
 sheet_urls_input = st.text_area(
-    "Enter Google Sheets URLs (one per line, leave blank to use default) if you capturing them manually", height=200
+    "Enter Google Sheets URLs (one per line, leave blank to use default)", height=200
 ).splitlines()
 
 # Predefined list of sheet URLs (used if text_area is empty)
 default_sheet_urls = [
     "https://docs.google.com/spreadsheets/d/1d-CAKvSXeEdQqyn9gNo6ZRDYIQRUGqMjKADdszvS5xY/edit?gid=0#gid=0",
+    "https://docs.google.com/spreadsheets/d/1d-CAKvSXeEdQqyn9gNo6ZRDYIQRUGqMjKADdszvS5xY?resourcekey=#gid=853958344",
     "https://docs.google.com/spreadsheets/d/1d2SWB7RgKeHat7uv53QwXYjsDOXtlEcDKL5CxI5JPI0/edit?gid=0#gid=0",
     "https://docs.google.com/spreadsheets/d/1rSymM0BmCsEEoiyyiKfjr8Lsf_HTL394dpcvTR5v6L8/edit?gid=0#gid=0"
 ]
-
-sheet_names = ["cea_budget", "cea_activities", "cea_ndicators"]  # descriptive names
 
 # Use manual URLs if provided, else default
 sheet_urls = sheet_urls_input if any(sheet_urls_input) else default_sheet_urls
@@ -35,34 +34,20 @@ if json_key_file:
         creds = ServiceAccountCredentials.from_json_keyfile_dict(key_dict, scope)
         client = gspread.authorize(creds)
         st.success("✅ Google Sheets API authorized successfully!")
-        
-        # Define columns to select from each sheet
-        sheets_info = [
-            {"url": sheet_urls[0], "columns": ["Intervention", "Activity", "Date", "Budget","Expenditure"], "name": sheet_names[0]},
-            {"url": sheet_urls[1], "columns": ["Intervention", "Activity", "Date", "Venue", "Male", "Female", "Other"], "name": sheet_names[1]},
-            {"url": sheet_urls[2], "columns": ["Intervention", "Activity", "Indicator", "Baseline", "Target", "Actual"], "name": sheet_names[2]},
-        ]
 
         df_list = []
 
-        for sheet in sheets_info:
-            worksheet = client.open_by_url(sheet["url"]).sheet1
+        for i, url in enumerate(sheet_urls):
+            worksheet = client.open_by_url(url).sheet1  # default = first worksheet
             data = pd.DataFrame(worksheet.get_all_records())
-            
-            # ✅ Debug: show actual columns in this sheet
-            st.write(f"Columns in {sheet['name']} sheet:", data.columns.tolist())
-            
-            # Select only required columns
-            data = data[sheet["columns"]]
+
+            st.write(f"Columns in sheet {i+1}:", data.columns.tolist())
+            st.write(f"### Preview of sheet {i+1}", data.head())
+
             df_list.append(data)
 
-        # Merge all sheets on 'Intervention'
-        merged_df = df_list[0]
-        for df in df_list[1:]:
-            merged_df = merged_df.merge(df, on="Intervention", how="left")
-
-        st.subheader("📂 Merged Data from Google Sheets")
-        st.dataframe(merged_df.head())
+        # ✅ Each sheet's DataFrame is now in df_list
+        st.success(f"Loaded {len(df_list)} sheets into DataFrames.")
 
     except Exception as e:
         st.error(f"❌ Error: {e}")
